@@ -60,15 +60,17 @@ class Coub:
             raise ValueError("User data not found in query.")
     
     def load_task_list(self):
+        url = "https://raw.githubusercontent.com/vonssy/Response.JSON/refs/heads/main/coub_tasks.json"
         try:
-            with open('tasks.json', 'r') as file:
-                data = json.load(file)
-                return data.get('task_list', [])
-        except FileNotFoundError:
-            self.log(f"{Fore.RED + Style.BRIGHT}Error: 'task_list.json' not found.{Style.RESET_ALL}")
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            return data.get('task_list', [])
+        except requests.exceptions.RequestException as e:
+            self.log(f"{Fore.RED + Style.BRIGHT}Error: Failed to fetch data from URL. {e}{Style.RESET_ALL}")
             return []
         except json.JSONDecodeError:
-            self.log(f"{Fore.RED + Style.BRIGHT}Error: Failed to parse 'task_list.json'.{Style.RESET_ALL}")
+            self.log(f"{Fore.RED + Style.BRIGHT}Error: Failed to parse JSON data.{Style.RESET_ALL}")
             return []
         
     def login(self, query: str, retries=5, delay=3):
@@ -251,14 +253,35 @@ class Coub:
     def process_query(self, query: str):
         
         first_name = self.load_data(query)
+        if not first_name:
+            return
+
         api_token = self.login(query)
+        if not api_token:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}[ Account{Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT} {first_name} {Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT}] [ Token{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Is None {Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT}]{Style.RESET_ALL}"
+            )
+            return
+
         token = self.get_token(api_token)
+        if not token:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}[ Account{Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT} {first_name} {Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT}] [ Token{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Is None {Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT}]{Style.RESET_ALL}"
+            )
+            return
         
         if token:
             user = self.user_rewards(token, query)
             reff = self.refferal_rewards(token, query)
             user_rewards = sum(point['points'] for point in user)
-            user_rewards -= 80
             reff_rewards = reff['referal_balance']
 
             total_rewards = user_rewards + reff_rewards
@@ -271,6 +294,15 @@ class Coub:
                     f"{Fore.WHITE+Style.BRIGHT} {total_rewards} $COUB {Style.RESET_ALL}"
                     f"{Fore.CYAN+Style.BRIGHT}]{Style.RESET_ALL}"
                 )
+            else:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}[ Account{Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {first_name} {Style.RESET_ALL}"
+                    f"{Fore.CYAN+Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Is None {Style.RESET_ALL}"
+                    f"{Fore.CYAN+Style.BRIGHT}]{Style.RESET_ALL}"
+                )
+            time.sleep(1)
 
             tasks = self.load_task_list()
             if tasks:
@@ -310,8 +342,13 @@ class Coub:
                                 f"{Fore.YELLOW+Style.BRIGHT}Already Completed{Style.RESET_ALL}"
                                 f"{Fore.MAGENTA+Style.BRIGHT} ]{Style.RESET_ALL}"
                             )
-
-                    time.sleep(1)
+                        time.sleep(1)
+            else:
+                self.log(
+                    f"{Fore.MAGENTA+Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Is None {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                )
         
     def main(self):
         try:
@@ -331,6 +368,7 @@ class Coub:
                     query = query.strip()
                     if query:
                         self.process_query(query)
+                        time.sleep(3)
                         self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
 
                 seconds = 1800
