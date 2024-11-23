@@ -148,44 +148,8 @@ class Coub:
                 else:
                     return None
         
-    async def user_rewards(self, token: str, query: str, retries=5, delay=3):
-        url = "https://rewards.coub.com/api/v2/get_user_rewards"
-        headers = {
-            **self.headers,
-            "Authorization": f"Bearer {token}",
-            "X-Tg-Authorization": query,
-            "Host": "rewards.coub.com",
-            "Origin": "https://coub.com",
-            "Referer": "https://coub.com/",
-            "Sec-Fetch-Site": "same-site",
-        }
-
-        for attempt in range(retries):
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url, headers=headers) as response:
-                        response.raise_for_status()
-                        if response.status == 200:
-                            return await response.json()
-                        else:
-                            return None
-            except (aiohttp.ClientError, aiohttp.ContentTypeError) as e:
-                if attempt < retries - 1:
-                    print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
-                    )
-                    await asyncio.sleep(delay)
-                else:
-                    return None
-    
-    async def refferal_rewards(self, token: str, query: str, retries=5, delay=3):
-        url = "https://rewards.coub.com/api/v2/referal_rewards"
+    async def user_balance(self, token: str, query: str, retries=5, delay=3):
+        url = "https://rewards.coub.com/api/v2/get_user_balance"
         headers = {
             **self.headers,
             "Authorization": f"Bearer {token}",
@@ -259,7 +223,6 @@ class Coub:
     
     async def process_query(self, query: str):
         account = self.load_data(query)
-
         api_token = await self.login(query)
         if not api_token:
             self.log(
@@ -287,7 +250,7 @@ class Coub:
         await asyncio.sleep(2)
         
         if token:
-            user = await self.user_rewards(token, query)
+            user = await self.user_balance(token, query)
             if not user:
                 self.log(
                     f"{Fore.MAGENTA+Style.BRIGHT}[ Account{Style.RESET_ALL}"
@@ -297,33 +260,14 @@ class Coub:
                 )
                 return
             
-            await asyncio.sleep(2)
-            
-            reff = await self.refferal_rewards(token, query)
-            if not reff:
-                self.log(
-                    f"{Fore.MAGENTA+Style.BRIGHT}[ Account{Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT} {account} {Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT}Refferal Data Is None{Style.RESET_ALL}"
-                    f"{Fore.MAGENTA+Style.BRIGHT} ]{Style.RESET_ALL}"
-                )
-                return
-            
-            await asyncio.sleep(2)
-            
-            if user and reff: 
-                user_rewards = sum(point["points"] for point in user)
-                reff_rewards = reff["referal_balance"]
-
-                total_rewards = user_rewards + reff_rewards
+            if user:
                 self.log(
                     f"{Fore.MAGENTA+Style.BRIGHT}[ Account{Style.RESET_ALL}"
                     f"{Fore.WHITE+Style.BRIGHT} {account} {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT} {total_rewards} $COUB {Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {user['balance']} $COUB {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                 )
-
                 await asyncio.sleep(2)
 
                 tasks = self.load_task_list()
