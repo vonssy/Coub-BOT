@@ -7,6 +7,7 @@ Register Here : [Coub](https://t.me/coub/app?startapp=coub__marker_18347663)
 
   - Auto Get Account Information
   - Auto Claim Daily Login
+  - Auto Claim Refferal Reward
   - Auto Complete Task
   - Multi Account
 
