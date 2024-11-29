@@ -183,6 +183,78 @@ class Coub:
                     await asyncio.sleep(delay)
                 else:
                     return None
+
+    async def refferal_rewards(self, token: str, query: str, retries=5, delay=3):
+        url = "https://rewards.coub.com/api/v2/referal_rewards"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "X-Tg-Authorization": query,
+            "Host": "rewards.coub.com",
+            "Origin": "https://coub.com",
+            "Referer": "https://coub.com/",
+            "Sec-Fetch-Site": "same-site",
+        }
+
+        for attempt in range(retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers) as response:
+                        response.raise_for_status()
+                        if response.status == 200:
+                            return await response.text()
+                        else:
+                            return None
+            except (aiohttp.ClientError, aiohttp.ContentTypeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    return None
+
+    async def claim_refferal(self, token: str, query: str, retries=5, delay=3):
+        url = "https://rewards.coub.com/api/v2/claim_referral_rewards"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "X-Tg-Authorization": query,
+            "Host": "rewards.coub.com",
+            "Origin": "https://coub.com",
+            "Referer": "https://coub.com/",
+            "Sec-Fetch-Site": "same-site",
+        }
+
+        for attempt in range(retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers) as response:
+                        response.raise_for_status()
+                        if response.status == 200:
+                            return True
+                        else:
+                            return False
+            except (aiohttp.ClientError, aiohttp.ContentTypeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    return None
     
     async def complete_tasks(self, token: str, query: str, task_id, retries=5, delay=3):
         url = "https://rewards.coub.com/api/v2/complete_task"
@@ -268,6 +340,40 @@ class Coub:
                     f"{Fore.WHITE+Style.BRIGHT} {user['balance']} $COUB {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                 )
+                await asyncio.sleep(2)
+
+                refferal = await self.refferal_rewards(token, query)
+                if refferal:
+                    refferal_data = json.loads(refferal)
+                    rewards = refferal_data['referal_balance']
+                    if rewards > 0:
+                        claim = await self.claim_refferal(token, query)
+                        if claim:
+                            self.log(
+                                f"{Fore.MAGENTA+Style.BRIGHT}[ Refferal{Style.RESET_ALL}"
+                                f"{Fore.WHITE+Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
+                                f"{Fore.WHITE+Style.BRIGHT} {rewards} $COUB {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                            )
+                        else:
+                            self.log(
+                                f"{Fore.MAGENTA+Style.BRIGHT}[ Refferal{Style.RESET_ALL}"
+                                f"{Fore.RED+Style.BRIGHT} Isn't Claimed {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                            )
+                    else:
+                        self.log(
+                            f"{Fore.MAGENTA+Style.BRIGHT}[ Refferal{Style.RESET_ALL}"
+                            f"{Fore.YELLOW+Style.BRIGHT} No Available Reward to Claim {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                        )
+                else:
+                    self.log(
+                        f"{Fore.MAGENTA+Style.BRIGHT}[ Refferal{Style.RESET_ALL}"
+                        f"{Fore.RED+Style.BRIGHT} Data Is None {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
                 await asyncio.sleep(2)
 
                 tasks = self.load_task_list()
